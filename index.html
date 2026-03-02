@@ -1,553 +1,237 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Padel Score</title>
-  <style>
-    :root { --bg:#000; --fg:#fff; --muted: rgba(255,255,255,.65); }
-    html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    .wrap { height:100%; display:flex; flex-direction:column; padding:16px; gap:14px; box-sizing:border-box; }
-    .top { display:flex; align-items:center; justify-content:space-between; }
-    .title { font-weight:900; letter-spacing:.6px; }
-    .pill { font-size:12px; padding:6px 10px; border:1px solid rgba(255,255,255,.2); border-radius:999px; color:var(--muted); }
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>PadelSync Score</title>
 
-    .main { flex:1; display:grid; grid-template-columns:1fr minmax(160px, 0.8fr) 1fr; gap:14px; align-items:stretch; }
-    .side {
-      border:1px solid rgba(255,255,255,.18);
-      border-radius:22px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      position:relative;
-      overflow:hidden;
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .side.red { border-color: rgba(255,0,0,.35); }
-    .side.blue { border-color: rgba(0,140,255,.35); }
-
-    .scoreWrap { position:relative; display:flex; align-items:center; justify-content:center; gap:14px; }
-    .score {
-      font-size: clamp(96px, 18vw, 220px);
-      font-weight: 950;
-      line-height: 0.95;
-      letter-spacing: -0.02em;
-    }
-
-    .serveBall {
-      width: clamp(18px, 2.6vw, 32px);
-      height: clamp(18px, 2.6vw, 32px);
-      border-radius: 999px;
-      opacity: 0;
-      transform: scale(0.85);
-      transition: opacity 120ms linear, transform 140ms ease;
-      flex: 0 0 auto;
-      box-shadow: 0 0 0 1px rgba(255,255,255,.18) inset;
-    }
-    .serveBall.on { opacity: 1; transform: scale(1); }
-    .serveBall.red { background: rgba(255,0,0,.55); }
-    .serveBall.blue { background: rgba(0,140,255,.55); }
-
-    .tapHint { position:absolute; bottom:10px; font-size:12px; color:var(--muted); opacity:0.8; }
-
-    .flash { position:absolute; inset:0; opacity:0; pointer-events:none; }
-    .side.red .flash { background: rgba(255,0,0,.16); }
-    .side.blue .flash { background: rgba(0,140,255,.16); }
-    .flash.on { opacity:1; transition: opacity 120ms linear; }
-    .flash.off { opacity:0; transition: opacity 220ms linear; }
-
-    .center {
-      border:1px solid rgba(255,255,255,.18);
-      border-radius:22px;
-      padding:14px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      gap:14px;
-      text-align:center;
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .center .line1 { font-size:14px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; }
-    .center .state { font-size:18px; font-weight:800; }
-    .kv { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
-    .card { border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:10px 10px; }
-    .k { font-size:12px; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; }
-    .v { font-size:28px; font-weight:900; margin-top:6px; }
-
-    .footer { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
-    .hint { font-size:12px; color:var(--muted); }
-    button { background:transparent; color:var(--fg); border:1px solid rgba(255,255,255,.22); padding:10px 12px; border-radius:12px; font-size:14px; }
-    button:active { transform: translateY(1px); }
-    .danger { border-color: rgba(255,80,80,.35); }
-    .ghost { color:var(--muted); }
-
-    .debug {
-      position: fixed; top: 12px; right: 12px;
-      width: min(360px, calc(100vw - 24px));
-      border:1px solid rgba(255,255,255,.22);
-      background: rgba(0,0,0,.72);
-      backdrop-filter: blur(6px);
-      border-radius: 14px;
-      padding: 10px 12px;
-      font-size: 12px;
-      display:none;
-      z-index: 10;
-    }
-    .debug.on { display:block; }
-    .debug h3 { margin:0 0 8px; font-size:12px; color:var(--muted); font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
-    .debug .k { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; white-space: pre-wrap; word-break: break-word; }
-
-    /* Overlay service initial */
-    .overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.88);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-      z-index: 20;
-    }
-    .overlay.on { display:flex; }
-    .panel {
-      width: min(560px, 100%);
-      border:1px solid rgba(255,255,255,.22);
-      border-radius: 22px;
-      padding: 18px;
-      background: rgba(0,0,0,.70);
-      backdrop-filter: blur(6px);
-    }
-    .panel h1 { margin:0 0 10px; font-size: 20px; letter-spacing:.1em; text-transform:uppercase; }
-    .panel .sub { margin:0 0 16px; color:var(--muted); font-size: 14px; }
-    .rowBtns { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-    .bigBtn {
-      padding: 14px 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.22);
-      font-weight: 900;
-      font-size: 14px;
-      background: transparent;
-      color: var(--fg);
-    }
-    .bigBtn.red { border-color: rgba(255,0,0,.35); }
-    .bigBtn.blue { border-color: rgba(0,140,255,.35); }
-    .bigBtn:active { transform: translateY(1px); }
-    .panel .tiny { margin-top:12px; font-size:12px; color:var(--muted); }
-
-    @media (orientation: landscape) {
-      .wrap { padding:14px; }
-      .center .state { font-size:20px; }
-      .v { font-size:30px; }
-    }
-  </style>
+<style>
+:root{--bg:#000;--fg:#fff;--muted:rgba(255,255,255,.6);}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+.wrap{height:100%;display:flex;flex-direction:column;padding:16px;gap:14px;box-sizing:border-box;}
+.main{flex:1;display:grid;grid-template-columns:1fr 180px 1fr;gap:14px;}
+.side{border:1px solid rgba(255,255,255,.18);border-radius:22px;display:flex;align-items:center;justify-content:center;position:relative;}
+.side.red{border-color:rgba(255,0,0,.35);}
+.side.blue{border-color:rgba(0,140,255,.35);}
+.score{font-size:clamp(90px,18vw,200px);font-weight:900;}
+.center{border:1px solid rgba(255,255,255,.18);border-radius:22px;padding:14px;display:flex;flex-direction:column;justify-content:center;gap:14px;text-align:center;}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.card{border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:10px;}
+.v{font-size:26px;font-weight:900;}
+.serveBall{width:22px;height:22px;border-radius:50%;opacity:0;transition:.15s;}
+.serveBall.on{opacity:1;}
+.serveBall.red{background:rgba(255,0,0,.6);}
+.serveBall.blue{background:rgba(0,140,255,.6);}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;}
+.panel{border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:20px;text-align:center;}
+button{background:transparent;color:white;border:1px solid rgba(255,255,255,.3);padding:10px 14px;border-radius:10px;margin:5px;}
+</style>
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="top">
-      <div class="title">PADEL SCORE</div>
-      <div class="pill" id="modePill">Normal</div>
-    </div>
+<div class="wrap">
+<div class="main">
 
-    <div class="main">
-      <div class="side red" id="tapRed" aria-label="Ajouter point Rouge" role="button">
-        <div class="flash" id="flashRed"></div>
-        <div class="scoreWrap">
-          <div class="serveBall red" id="serveRed"></div>
-          <div class="score" id="scoreRed">0</div>
-        </div>
-        <div class="tapHint">Tap = Rouge</div>
-      </div>
+<div class="side red" id="tapRed">
+<div class="serveBall red" id="serveRed"></div>
+<div class="score" id="scoreRed">0</div>
+</div>
 
-      <div class="center" id="centerTap" aria-label="Centre match (double tap = changer service)" role="button">
-        <div class="line1" id="matchLine">Service</div>
-        <div class="state" id="stateLine">—</div>
+<div class="center" id="centerTap">
+<div id="modeLine">Normal</div>
+<div class="kv">
+<div class="card"><div>Sets</div><div class="v" id="setsLine">0 - 0</div></div>
+<div class="card"><div>Jeux</div><div class="v" id="gamesLine">0 - 0</div></div>
+</div>
+</div>
 
-        <div class="kv">
-          <div class="card">
-            <div class="k">Sets</div>
-            <div class="v" id="setsLine">0 - 0</div>
-          </div>
-          <div class="card">
-            <div class="k">Jeux</div>
-            <div class="v" id="gamesLine">0 - 0</div>
-          </div>
-        </div>
-      </div>
+<div class="side blue" id="tapBlue">
+<div class="score" id="scoreBlue">0</div>
+<div class="serveBall blue" id="serveBlue"></div>
+</div>
 
-      <div class="side blue" id="tapBlue" aria-label="Ajouter point Bleu" role="button">
-        <div class="flash" id="flashBlue"></div>
-        <div class="scoreWrap">
-          <div class="score" id="scoreBlue">0</div>
-          <div class="serveBall blue" id="serveBlue"></div>
-        </div>
-        <div class="tapHint">Tap = Bleu</div>
-      </div>
-    </div>
+</div>
+</div>
 
-    <div class="footer">
-      <div class="hint">Clavier : Rouge=R · Bleu=B · Undo=U · Service=S · Debug=D</div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button id="btnUndo">Undo</button>
-        <button class="danger" id="btnReset">Reset</button>
-        <button class="ghost" id="btnDebug">Debug</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="debug" id="de0bug">
-    <h3>Debug clavier</h3>
-    <div class="k" id="debugText">—</div>
-  </div>
-
-  <div class="overlay on" id="serveOverlay">
-    <div class="panel">
-      <h1>Qui sert en premier ?</h1>
-      <p class="sub">Choisis Rouge / Bleu ou tire au sort. Ensuite, le service alterne automatiquement à chaque jeu.</p>
-      <div class="rowBtns">
-        <button class="bigBtn red" id="servePickRed">ROUGE</button>
-        <button class="bigBtn blue" id="servePickBlue">BLEU</button>
-        <button class="bigBtn" id="servePickRand">ALÉATOIRE</button>
-      </div>
-      <div class="tiny">Astuce : tu peux aussi appuyer sur <b>S</b> (ou double-tap au centre) pour corriger le service.</div>
-    </div>
-  </div>
+<div class="overlay" id="overlay">
+<div class="panel">
+<p>Qui sert en premier ?</p>
+<button onclick="pickService('r')">Rouge</button>
+<button onclick="pickService('b')">Bleu</button>
+<button onclick="pickService()">Aléatoire</button>
+</div>
+</div>
 
 <script>
-(() => {
-  // Mapping clavier Option A (à adapter quand tu auras le Satechi)
-  const KEYMAP = {
-    RED:  ['r','R'],
-    BLUE: ['b','B'],
-    UNDO: ['u','U'],
-    SERVICE: ['s','S'],
-    DEBUG:['d','D'],
-  };
+const LABELS=['0','15','30','40'];
 
-  const DEBOUNCE_MS = 220;
-  const SAMEKEY_GATE_MS = 800;
+const STATE={
+mode:'normal',
+sets:{r:0,b:0},
+games:{r:0,b:0},
+points:{r:0,b:0},
+adv:null,
+serve:null,
+history:[]
+};
 
-  const STATE = {
-    mode: 'normal',          // 'normal' | 'tiebreak'
-    sets: { r: 0, b: 0 },
-    games: { r: 0, b: 0 },
-    points: { r: 0, b: 0 },  // normal: 0..3 ; tiebreak: int
-    advTeam: null,
-    history: [],
-    lastInputAt: 0,
-    lastKey: '',
-    speakEnabled: true,
+const el={
+r:scoreRed,
+b:scoreBlue,
+sets:setsLine,
+games:gamesLine,
+serveR:serveRed,
+serveB:serveBlue,
+mode:modeLine,
+overlay:overlay
+};
 
-    // Service (équipe au service)
-    serveTeam: null,  // 'r' | 'b' | null tant que non choisi
-  };
+function speak(text,delay=300){
+if(!('speechSynthesis'in window))return;
+setTimeout(()=>{
+speechSynthesis.cancel();
+const u=new SpeechSynthesisUtterance(text);
+u.lang='fr-FR';
+u.rate=1.05;
+speechSynthesis.speak(u);
+},delay);
+}
 
-  const el = {
-    scoreR: document.getElementById('scoreRed'),
-    scoreB: document.getElementById('scoreBlue'),
-    serveR: document.getElementById('serveRed'),
-    serveB: document.getElementById('serveBlue'),
-    setsLine: document.getElementById('setsLine'),
-    gamesLine: document.getElementById('gamesLine'),
-    stateLine: document.getElementById('stateLine'),
-    modePill: document.getElementById('modePill'),
-    flashR: document.getElementById('flashRed'),
-    flashB: document.getElementById('flashBlue'),
-    tapR: document.getElementById('tapRed'),
-    tapB: document.getElementById('tapBlue'),
-    centerTap: document.getElementById('centerTap'),
-    btnUndo: document.getElementById('btnUndo'),
-    btnReset: document.getElementById('btnReset'),
-    btnDebug: document.getElementById('btnDebug'),
-    debug: document.getElementById('debug'),
-    debugText: document.getElementById('debugText'),
+function snapshot(){
+STATE.history.push(JSON.parse(JSON.stringify(STATE)));
+if(STATE.history.length>100)STATE.history.shift();
+}
 
-    overlay: document.getElementById('serveOverlay'),
-    pickR: document.getElementById('servePickRed'),
-    pickB: document.getElementById('servePickBlue'),
-    pickRand: document.getElementById('servePickRand'),
-  };
+function undo(){
+if(!STATE.history.length)return;
+Object.assign(STATE,STATE.history.pop());
+render();
+}
 
-  const POINTS_LABEL = ['0', '15', '30', '40'];
-  const now = () => Date.now();
+function pickService(t){
+STATE.serve=t??(Math.random()<0.5?'r':'b');
+el.overlay.style.display='none';
+speak('Service '+(STATE.serve==='r'?'rouge':'bleu'),100);
+render();
+}
 
-  function snapshot() {
-    return JSON.parse(JSON.stringify({
-      mode: STATE.mode, sets: STATE.sets, games: STATE.games,
-      points: STATE.points, advTeam: STATE.advTeam, serveTeam: STATE.serveTeam
-    }));
-  }
-  function pushHistory() {
-    STATE.history.push(snapshot());
-    if (STATE.history.length > 80) STATE.history.shift();
-  }
-  function restore(snap) {
-    STATE.mode = snap.mode;
-    STATE.sets = snap.sets;
-    STATE.games = snap.games;
-    STATE.points = snap.points;
-    STATE.advTeam = snap.advTeam;
-    STATE.serveTeam = snap.serveTeam;
-    render();
-  }
-  function flash(team) {
-    const f = team === 'r' ? el.flashR : el.flashB;
-    f.classList.remove('off');
-    f.classList.add('on');
-    setTimeout(() => { f.classList.remove('on'); f.classList.add('off'); }, 140);
-  }
+function spokenScore(){
+const s=STATE.serve;
+const o=s==='r'?'b':'r';
 
-  let speakTimer = null;
-  function speak(text, delayMs = 420) {
-    if (!STATE.speakEnabled) return;
-    if (!('speechSynthesis' in window)) return;
-    if (speakTimer) clearTimeout(speakTimer);
-    window.speechSynthesis.cancel();
-    speakTimer = setTimeout(() => {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'fr-FR';
-      u.rate = 1.05;
-      window.speechSynthesis.speak(u);
-    }, delayMs);
-  }
+if(STATE.mode==='tiebreak')
+return STATE.points[s]+' '+STATE.points[o];
 
-  function ensureServiceChosen() {
-    if (STATE.serveTeam) return true;
-    el.overlay.classList.add('on');
-    return false;
-  }
+if(STATE.points.r===3&&STATE.points.b===3){
+if(STATE.adv===s)return 'Avantage '+(s==='r'?'rouge':'bleu');
+if(STATE.adv===o)return 'Avantage '+(o==='r'?'rouge':'bleu');
+return 'Égalité';
+}
+return LABELS[STATE.points[s]]+' '+LABELS[STATE.points[o]];
+}
 
-  function pickService(teamOrNull) {
-    const team = teamOrNull ?? (Math.random() < 0.5 ? 'r' : 'b');
-    STATE.serveTeam = team;
-    el.overlay.classList.remove('on');
-    if (navigator.vibrate) navigator.vibrate(40);
-    speak(`Service ${team === 'r' ? 'rouge' : 'bleu'}`, 200);
-    render();
-  }
+function announceFull(){
+const s=STATE.serve;
+const o=s==='r'?'b':'r';
+speak(
+spokenScore()+
+' pour l équipe '+(s==='r'?'rouge':'bleu')+
+' au service, '+
+STATE.games[s]+' jeux à '+STATE.games[o]+
+', '+STATE.sets[s]+' sets à '+STATE.sets[o],
+100);
+}
 
-  function toggleServiceManual() {
-    if (!STATE.serveTeam) { el.overlay.classList.add('on'); return; }
-    STATE.serveTeam = (STATE.serveTeam === 'r') ? 'b' : 'r';
-    if (navigator.vibrate) navigator.vibrate(20);
-    speak(`Service ${STATE.serveTeam === 'r' ? 'rouge' : 'bleu'}`, 120);
-    render();
-  }
+function addPoint(team){
+if(!STATE.serve)return;
+snapshot();
 
-  function scoreSpoken() {
-    if (STATE.mode === 'tiebreak') return `${STATE.points.r} ${STATE.points.b}`;
-    const r40 = (STATE.points.r === 3), b40 = (STATE.points.b === 3);
-    if (r40 && b40) {
-      if (STATE.advTeam === 'r') return 'Avantage rouge';
-      if (STATE.advTeam === 'b') return 'Avantage bleu';
-      return 'Égalité';
-    }
-    return `${POINTS_LABEL[STATE.points.r]} ${POINTS_LABEL[STATE.points.b]}`;
-  }
+if(STATE.mode==='tiebreak'){
+STATE.points[team]++;
+render();
+speak(spokenScore());
+checkTB();
+return;
+}
 
-  function stateText() {
-    if (STATE.mode === 'tiebreak') return `Tie-break · ${STATE.points.r}-${STATE.points.b}`;
-    const r40 = (STATE.points.r === 3), b40 = (STATE.points.b === 3);
-    if (r40 && b40) {
-      if (STATE.advTeam === 'r') return 'Avantage Rouge';
-      if (STATE.advTeam === 'b') return 'Avantage Bleu';
-      return 'Égalité (40-40)';
-    }
-    return `Service: ${STATE.serveTeam ? (STATE.serveTeam === 'r' ? 'Rouge' : 'Bleu') : '—'}`;
-  }
+const o=team==='r'?'b':'r';
 
-  function startTiebreakIfNeeded() {
-    if (STATE.mode === 'normal' && STATE.games.r === 6 && STATE.games.b === 6) {
-      STATE.mode = 'tiebreak';
-      STATE.points = { r: 0, b: 0 };
-      STATE.advTeam = null;
-      speak('Tie break');
-      render();
-    }
-  }
+if(STATE.points.r===3&&STATE.points.b===3){
+if(!STATE.adv){STATE.adv=team;render();speak(spokenScore());return;}
+if(STATE.adv===team){winGame(team);return;}
+if(STATE.adv===o){STATE.adv=null;render();speak(spokenScore());return;}
+}
 
-  function winSet(team) {
-    // Tu avais demandé une alternance de service au début de set (set 1 bleu, set 2 rouge...)
-    // MAIS tu veux aussi tirage au sort du premier service du match.
-    // Donc: on garde le service courant et on continue la logique "après chaque jeu, ça change".
-    // Le début de set est donc cohérent car le service a déjà basculé après le dernier jeu.
-    STATE.sets[team] += 1;
-    STATE.games = { r: 0, b: 0 };
-    STATE.points = { r: 0, b: 0 };
-    STATE.mode = 'normal';
-    STATE.advTeam = null;
-    speak(`Set ${team === 'r' ? 'rouge' : 'bleu'}`);
-    render();
-  }
+if(STATE.points[team]<3){STATE.points[team]++;render();speak(spokenScore());return;}
+if(STATE.points[team]===3&&STATE.points[o]<3){winGame(team);}
+}
 
-  function winGame(team) {
-    STATE.games[team] += 1;
-    STATE.points = { r: 0, b: 0 };
-    STATE.advTeam = null;
-    speak(`Jeu ${team === 'r' ? 'rouge' : 'bleu'}`);
+function winGame(team){
+STATE.games[team]++;
+STATE.points={r:0,b:0};
+STATE.adv=null;
 
-    // Service change automatiquement après chaque jeu
-    if (STATE.serveTeam) STATE.serveTeam = (STATE.serveTeam === 'r') ? 'b' : 'r';
+speak('Jeu '+(team==='r'?'rouge':'bleu'));
 
-    const o = (team === 'r') ? 'b' : 'r';
-    const gt = STATE.games[team], go = STATE.games[o];
+const total=STATE.games.r+STATE.games.b;
+if(total%2===1)speak('Changement de côté',900);
 
-    if (gt >= 6 && (gt - go) >= 2) { winSet(team); return; }
-    startTiebreakIfNeeded();
-    render();
-  }
+STATE.serve=STATE.serve==='r'?'b':'r';
 
-  function winTiebreakIfNeeded() {
-    const r = STATE.points.r, b = STATE.points.b;
-    if ((r >= 7 || b >= 7) && Math.abs(r - b) >= 2) {
-      winSet(r > b ? 'r' : 'b');
-    }
-  }
+if(STATE.games.r===6&&STATE.games.b===6){
+STATE.mode='tiebreak';
+STATE.points={r:0,b:0};
+speak('Tie break');
+render();
+return;
+}
 
-  function addPoint(team) {
-    if (!ensureServiceChosen()) return;
+if(STATE.games[team]>=6&&Math.abs(STATE.games.r-STATE.games.b)>=2){
+STATE.sets[team]++;
+STATE.games={r:0,b:0};
+speak('Set '+(team==='r'?'rouge':'bleu'));
+}
 
-    pushHistory();
-    flash(team);
+render();
+}
 
-    if (STATE.mode === 'tiebreak') {
-      STATE.points[team] += 1;
-      render();
-      speak(scoreSpoken());
-      winTiebreakIfNeeded();
-      return;
-    }
+function checkTB(){
+const r=STATE.points.r,b=STATE.points.b;
+if((r>=7||b>=7)&&Math.abs(r-b)>=2){
+winSet(r>b?'r':'b');
+}
+}
 
-    const t = team;
-    const o = (team === 'r') ? 'b' : 'r';
-    const r40 = (STATE.points.r === 3), b40 = (STATE.points.b === 3);
+function winSet(team){
+STATE.sets[team]++;
+STATE.games={r:0,b:0};
+STATE.points={r:0,b:0};
+STATE.mode='normal';
+speak('Set '+(team==='r'?'rouge':'bleu'));
+render();
+}
 
-    if (r40 && b40) {
-      if (STATE.advTeam === null) { STATE.advTeam = t; render(); speak(scoreSpoken()); return; }
-      if (STATE.advTeam === t) { winGame(t); return; }
-      if (STATE.advTeam === o) { STATE.advTeam = null; render(); speak(scoreSpoken()); return; }
-    }
+function render(){
+el.r.textContent=STATE.mode==='tiebreak'?STATE.points.r:LABELS[STATE.points.r];
+el.b.textContent=STATE.mode==='tiebreak'?STATE.points.b:LABELS[STATE.points.b];
+el.sets.textContent=STATE.sets.r+' - '+STATE.sets.b;
+el.games.textContent=STATE.games.r+' - '+STATE.games.b;
+el.serveR.classList.toggle('on',STATE.serve==='r');
+el.serveB.classList.toggle('on',STATE.serve==='b');
+el.mode.textContent=STATE.mode==='tiebreak'?'Tie-break':'Normal';
+}
 
-    if (STATE.points[t] < 3) { STATE.points[t] += 1; render(); speak(scoreSpoken()); return; }
-    if (STATE.points[t] === 3 && STATE.points[o] < 3) { winGame(t); return; }
-  }
+tapRed.onclick=()=>addPoint('r');
+tapBlue.onclick=()=>addPoint('b');
 
-  function undo() {
-    if (!STATE.history.length) return;
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    if (speakTimer) clearTimeout(speakTimer);
-    restore(STATE.history.pop());
-  }
+let last=0;
+centerTap.onclick=()=>{
+const t=Date.now();
+if(t-last<350)announceFull();
+last=t;
+};
 
-  function resetAll() {
-    STATE.mode = 'normal';
-    STATE.sets = { r: 0, b: 0 };
-    STATE.games = { r: 0, b: 0 };
-    STATE.points = { r: 0, b: 0 };
-    STATE.advTeam = null;
-    STATE.history = [];
-    STATE.serveTeam = null; // on redemande (ou aléatoire) via overlay
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    el.overlay.classList.add('on');
-    render();
-  }
-
-  function pointsLabel(team) {
-    if (STATE.mode === 'tiebreak') return String(STATE.points[team]);
-    const r40 = (STATE.points.r === 3), b40 = (STATE.points.b === 3);
-    if (r40 && b40) return (STATE.advTeam === team) ? 'AV' : '40';
-    return POINTS_LABEL[STATE.points[team]];
-  }
-
-  function render() {
-    el.scoreR.textContent = pointsLabel('r');
-    el.scoreB.textContent = pointsLabel('b');
-    el.setsLine.textContent = `${STATE.sets.r} - ${STATE.sets.b}`;
-    el.gamesLine.textContent = `${STATE.games.r} - ${STATE.games.b}`;
-    el.stateLine.textContent = stateText();
-    el.modePill.textContent = (STATE.mode === 'tiebreak') ? 'Tie-break' : 'Normal';
-
-    el.serveR.classList.toggle('on', STATE.serveTeam === 'r');
-    el.serveB.classList.toggle('on', STATE.serveTeam === 'b');
-  }
-
-  function shouldAcceptInput(key) {
-    const t = now();
-    if (t - STATE.lastInputAt < SAMEKEY_GATE_MS && key === STATE.lastKey) return false;
-    if (t - STATE.lastInputAt < DEBOUNCE_MS) return false;
-    STATE.lastInputAt = t;
-    STATE.lastKey = key;
-    return true;
-  }
-
-  function toggleDebug() { el.debug.classList.toggle('on'); }
-  function logDebug(e) {
-    el.debugText.textContent = [
-      `key: ${String(e.key)}`,
-      `code: ${String(e.code)}`,
-      `repeat: ${String(!!e.repeat)}`,
-      `time: ${new Date().toLocaleTimeString()}`
-    ].join('\n');
-  }
-
-  function inList(k, list) { return list.includes(k); }
-
-  function handleKey(e) {
-    if (e.repeat) return;
-    logDebug(e);
-
-    const k = e.key;
-
-    if (inList(k, KEYMAP.DEBUG)) { toggleDebug(); return; }
-    if (inList(k, KEYMAP.SERVICE)) {
-      if (!shouldAcceptInput(k)) return;
-      toggleServiceManual();
-      return;
-    }
-
-    let action = null;
-    if (inList(k, KEYMAP.RED)) action = () => addPoint('r');
-    else if (inList(k, KEYMAP.BLUE)) action = () => addPoint('b');
-    else if (inList(k, KEYMAP.UNDO)) action = () => undo();
-
-    if (!action) return;
-
-    try { e.preventDefault(); } catch {}
-    if (!shouldAcceptInput(k)) return;
-    action();
-  }
-
-  window.addEventListener('keydown', handleKey, { passive: false });
-
-  // Tap zones (scores)
-  el.tapR.addEventListener('click', () => addPoint('r'));
-  el.tapB.addEventListener('click', () => addPoint('b'));
-
-  // Double tap center = toggle service (correction rapide)
-  let lastCenterTap = 0;
-  el.centerTap.addEventListener('click', () => {
-    const t = now();
-    if (t - lastCenterTap < 350) {
-      toggleServiceManual();
-      lastCenterTap = 0;
-      return;
-    }
-    lastCenterTap = t;
-  });
-
-  // Bottom buttons
-  el.btnUndo.addEventListener('click', () => undo());
-  el.btnReset.addEventListener('click', () => { if (confirm('Reset match ?')) resetAll(); });
-  el.btnDebug.addEventListener('click', () => toggleDebug());
-
-  // Overlay choices
-  el.pickR.addEventListener('click', () => pickService('r'));
-  el.pickB.addEventListener('click', () => pickService('b'));
-  el.pickRand.addEventListener('click', () => pickService(null));
-
-  // Init: overlay shown until choose (or random)
-  render();
-})();
+render();
 </script>
 </body>
 </html>
