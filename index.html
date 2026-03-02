@@ -3,97 +3,135 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>PadelSync Score</title>
+<title>PadelSync</title>
 
 <style>
 :root{
---bg:#ffffff;
+--bg:#f5f5f7;
+--card:#ffffff;
 --fg:#111111;
---muted:rgba(0,0,0,.55);
+--muted:#8e8e93;
+--red:#ff3b30;
+--blue:#007aff;
 }
 
 html,body{
 height:100%;
 margin:0;
 background:var(--bg);
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 color:var(--fg);
-font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
 }
 
 .wrap{
 height:100%;
 display:flex;
 flex-direction:column;
-padding:16px;
-gap:14px;
+padding:20px;
+gap:18px;
 box-sizing:border-box;
 }
 
 .main{
 flex:1;
 display:grid;
-grid-template-columns:1fr 180px 1fr;
-gap:14px;
+grid-template-columns:1fr 220px 1fr;
+gap:18px;
 }
 
 .side{
-border:2px solid rgba(0,0,0,.15);
-border-radius:22px;
+background:var(--card);
+border-radius:34px;
 display:flex;
 align-items:center;
 justify-content:center;
 position:relative;
+box-shadow:0 8px 30px rgba(0,0,0,.08);
 }
 
-.side.red{border-color:rgba(255,0,0,.5);}
-.side.blue{border-color:rgba(0,120,255,.5);}
+.side.red{outline:3px solid rgba(255,59,48,.4);}
+.side.blue{outline:3px solid rgba(0,122,255,.4);}
 
 .score{
 font-size:clamp(90px,18vw,200px);
 font-weight:900;
-}
-
-.center{
-border:2px solid rgba(0,0,0,.15);
-border-radius:22px;
-padding:14px;
-display:flex;
-flex-direction:column;
-justify-content:center;
-gap:14px;
-text-align:center;
-}
-
-.kv{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-}
-
-.card{
-border:1px solid rgba(0,0,0,.2);
-border-radius:16px;
-padding:10px;
-}
-
-.v{
-font-size:26px;
-font-weight:900;
+letter-spacing:-.04em;
 }
 
 .serveBall{
-width:22px;
-height:22px;
+position:absolute;
+top:20px;
+width:18px;
+height:18px;
 border-radius:50%;
 opacity:0;
-transition:.15s;
-position:absolute;
-left:10px;
+transition:.2s;
 }
 
+.serveBall.red{background:var(--red);}
+.serveBall.blue{background:var(--blue);}
 .serveBall.on{opacity:1;}
-.serveBall.red{background:red;}
-.serveBall.blue{background:#0078ff;}
+
+.center{
+background:var(--card);
+border-radius:40px;
+padding:30px 20px;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:30px;
+box-shadow:0 10px 40px rgba(0,0,0,.08);
+}
+
+.mode{
+font-size:12px;
+font-weight:700;
+letter-spacing:.15em;
+text-transform:uppercase;
+color:var(--muted);
+background:#f0f0f3;
+padding:6px 14px;
+border-radius:999px;
+}
+
+.gamesBlock{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:8px;
+}
+
+.gamesScore{
+font-size:56px;
+font-weight:900;
+letter-spacing:-.05em;
+}
+
+.gamesLabel{
+font-size:12px;
+letter-spacing:.2em;
+color:var(--muted);
+}
+
+.setsBlock{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:4px;
+opacity:.7;
+}
+
+.setsScore{
+font-size:22px;
+font-weight:800;
+}
+
+.setsLabel{
+font-size:11px;
+letter-spacing:.2em;
+color:var(--muted);
+}
 
 .footer{
 display:flex;
@@ -102,11 +140,12 @@ gap:20px;
 }
 
 button{
-background:#f2f2f2;
-border:1px solid rgba(0,0,0,.2);
-padding:10px 20px;
-border-radius:12px;
+background:var(--card);
+border:none;
+padding:12px 22px;
+border-radius:16px;
 font-weight:600;
+box-shadow:0 6px 18px rgba(0,0,0,.08);
 }
 
 .overlay{
@@ -119,11 +158,15 @@ justify-content:center;
 }
 
 .panel{
-border:1px solid rgba(0,0,0,.2);
-border-radius:20px;
-padding:20px;
-text-align:center;
 background:white;
+padding:30px;
+border-radius:30px;
+box-shadow:0 10px 40px rgba(0,0,0,.1);
+text-align:center;
+}
+
+.panel button{
+margin:8px;
 }
 </style>
 </head>
@@ -131,7 +174,6 @@ background:white;
 <body>
 
 <div class="wrap">
-
 <div class="main">
 
 <div class="side red" id="tapRed">
@@ -140,10 +182,16 @@ background:white;
 </div>
 
 <div class="center" id="centerTap">
-<div id="modeLine">Normal</div>
-<div class="kv">
-<div class="card"><div>Sets</div><div class="v" id="setsLine">0 - 0</div></div>
-<div class="card"><div>Jeux</div><div class="v" id="gamesLine">0 - 0</div></div>
+<div class="mode" id="modeLine">Normal</div>
+
+<div class="gamesBlock">
+<div class="gamesScore" id="gamesLine">0 - 0</div>
+<div class="gamesLabel">JEUX</div>
+</div>
+
+<div class="setsBlock">
+<div class="setsScore" id="setsLine">0 - 0</div>
+<div class="setsLabel">SETS</div>
 </div>
 </div>
 
@@ -158,7 +206,6 @@ background:white;
 <button onclick="undo()">Undo</button>
 <button onclick="resetMatch()">Reset</button>
 </div>
-
 </div>
 
 <div class="overlay" id="overlay">
@@ -207,8 +254,7 @@ serve:STATE.serve
 
 function undo(){
 if(!STATE.history.length)return;
-const prev=STATE.history.pop();
-Object.assign(STATE,prev);
+Object.assign(STATE,STATE.history.pop());
 render();
 }
 
