@@ -6,30 +6,132 @@
 <title>PadelSync Score</title>
 
 <style>
-:root{--bg:#000;--fg:#fff;--muted:rgba(255,255,255,.6);}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
-.wrap{height:100%;display:flex;flex-direction:column;padding:16px;gap:14px;box-sizing:border-box;}
-.main{flex:1;display:grid;grid-template-columns:1fr 180px 1fr;gap:14px;}
-.side{border:1px solid rgba(255,255,255,.18);border-radius:22px;display:flex;align-items:center;justify-content:center;position:relative;}
-.side.red{border-color:rgba(255,0,0,.35);}
-.side.blue{border-color:rgba(0,140,255,.35);}
-.score{font-size:clamp(90px,18vw,200px);font-weight:900;}
-.center{border:1px solid rgba(255,255,255,.18);border-radius:22px;padding:14px;display:flex;flex-direction:column;justify-content:center;gap:14px;text-align:center;}
-.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.card{border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:10px;}
-.v{font-size:26px;font-weight:900;}
-.serveBall{width:22px;height:22px;border-radius:50%;opacity:0;transition:.15s;}
+:root{
+--bg:#ffffff;
+--fg:#111111;
+--muted:rgba(0,0,0,.55);
+}
+
+html,body{
+height:100%;
+margin:0;
+background:var(--bg);
+color:var(--fg);
+font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+}
+
+.wrap{
+height:100%;
+display:flex;
+flex-direction:column;
+padding:16px;
+gap:14px;
+box-sizing:border-box;
+}
+
+.main{
+flex:1;
+display:grid;
+grid-template-columns:1fr 180px 1fr;
+gap:14px;
+}
+
+.side{
+border:2px solid rgba(0,0,0,.15);
+border-radius:22px;
+display:flex;
+align-items:center;
+justify-content:center;
+position:relative;
+}
+
+.side.red{border-color:rgba(255,0,0,.5);}
+.side.blue{border-color:rgba(0,120,255,.5);}
+
+.score{
+font-size:clamp(90px,18vw,200px);
+font-weight:900;
+}
+
+.center{
+border:2px solid rgba(0,0,0,.15);
+border-radius:22px;
+padding:14px;
+display:flex;
+flex-direction:column;
+justify-content:center;
+gap:14px;
+text-align:center;
+}
+
+.kv{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.card{
+border:1px solid rgba(0,0,0,.2);
+border-radius:16px;
+padding:10px;
+}
+
+.v{
+font-size:26px;
+font-weight:900;
+}
+
+.serveBall{
+width:22px;
+height:22px;
+border-radius:50%;
+opacity:0;
+transition:.15s;
+position:absolute;
+left:10px;
+}
+
 .serveBall.on{opacity:1;}
-.serveBall.red{background:rgba(255,0,0,.6);}
-.serveBall.blue{background:rgba(0,140,255,.6);}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;}
-.panel{border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:20px;text-align:center;}
-button{background:transparent;color:white;border:1px solid rgba(255,255,255,.3);padding:10px 14px;border-radius:10px;margin:5px;}
+.serveBall.red{background:red;}
+.serveBall.blue{background:#0078ff;}
+
+.footer{
+display:flex;
+justify-content:center;
+gap:20px;
+}
+
+button{
+background:#f2f2f2;
+border:1px solid rgba(0,0,0,.2);
+padding:10px 20px;
+border-radius:12px;
+font-weight:600;
+}
+
+.overlay{
+position:fixed;
+inset:0;
+background:rgba(255,255,255,.95);
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.panel{
+border:1px solid rgba(0,0,0,.2);
+border-radius:20px;
+padding:20px;
+text-align:center;
+background:white;
+}
 </style>
 </head>
 
 <body>
+
 <div class="wrap">
+
 <div class="main">
 
 <div class="side red" id="tapRed">
@@ -46,11 +148,17 @@ button{background:transparent;color:white;border:1px solid rgba(255,255,255,.3);
 </div>
 
 <div class="side blue" id="tapBlue">
-<div class="score" id="scoreBlue">0</div>
 <div class="serveBall blue" id="serveBlue"></div>
+<div class="score" id="scoreBlue">0</div>
 </div>
 
 </div>
+
+<div class="footer">
+<button onclick="undo()">Undo</button>
+<button onclick="resetMatch()">Reset</button>
+</div>
+
 </div>
 
 <div class="overlay" id="overlay">
@@ -75,17 +183,6 @@ serve:null,
 history:[]
 };
 
-const el={
-r:scoreRed,
-b:scoreBlue,
-sets:setsLine,
-games:gamesLine,
-serveR:serveRed,
-serveB:serveBlue,
-mode:modeLine,
-overlay:overlay
-};
-
 function speak(text,delay=300){
 if(!('speechSynthesis'in window))return;
 setTimeout(()=>{
@@ -98,19 +195,39 @@ speechSynthesis.speak(u);
 }
 
 function snapshot(){
-STATE.history.push(JSON.parse(JSON.stringify(STATE)));
-if(STATE.history.length>100)STATE.history.shift();
+STATE.history.push(JSON.parse(JSON.stringify({
+mode:STATE.mode,
+sets:STATE.sets,
+games:STATE.games,
+points:STATE.points,
+adv:STATE.adv,
+serve:STATE.serve
+})));
 }
 
 function undo(){
 if(!STATE.history.length)return;
-Object.assign(STATE,STATE.history.pop());
+const prev=STATE.history.pop();
+Object.assign(STATE,prev);
+render();
+}
+
+function resetMatch(){
+if(!confirm("Reset match ?"))return;
+STATE.mode='normal';
+STATE.sets={r:0,b:0};
+STATE.games={r:0,b:0};
+STATE.points={r:0,b:0};
+STATE.adv=null;
+STATE.serve=null;
+STATE.history=[];
+overlay.style.display='flex';
 render();
 }
 
 function pickService(t){
 STATE.serve=t??(Math.random()<0.5?'r':'b');
-el.overlay.style.display='none';
+overlay.style.display='none';
 speak('Service '+(STATE.serve==='r'?'rouge':'bleu'),100);
 render();
 }
@@ -133,13 +250,10 @@ return LABELS[STATE.points[s]]+' '+LABELS[STATE.points[o]];
 function announceFull(){
 const s=STATE.serve;
 const o=s==='r'?'b':'r';
-speak(
-spokenScore()+
+speak(spokenScore()+
 ' pour l équipe '+(s==='r'?'rouge':'bleu')+
-' au service, '+
-STATE.games[s]+' jeux à '+STATE.games[o]+
-', '+STATE.sets[s]+' sets à '+STATE.sets[o],
-100);
+', '+STATE.games[s]+' jeux à '+STATE.games[o]+
+', '+STATE.sets[s]+' sets à '+STATE.sets[o],100);
 }
 
 function addPoint(team){
@@ -198,27 +312,23 @@ render();
 function checkTB(){
 const r=STATE.points.r,b=STATE.points.b;
 if((r>=7||b>=7)&&Math.abs(r-b)>=2){
-winSet(r>b?'r':'b');
-}
-}
-
-function winSet(team){
-STATE.sets[team]++;
+STATE.sets[r>b?'r':'b']++;
 STATE.games={r:0,b:0};
 STATE.points={r:0,b:0};
 STATE.mode='normal';
-speak('Set '+(team==='r'?'rouge':'bleu'));
+speak('Set');
 render();
+}
 }
 
 function render(){
-el.r.textContent=STATE.mode==='tiebreak'?STATE.points.r:LABELS[STATE.points.r];
-el.b.textContent=STATE.mode==='tiebreak'?STATE.points.b:LABELS[STATE.points.b];
-el.sets.textContent=STATE.sets.r+' - '+STATE.sets.b;
-el.games.textContent=STATE.games.r+' - '+STATE.games.b;
-el.serveR.classList.toggle('on',STATE.serve==='r');
-el.serveB.classList.toggle('on',STATE.serve==='b');
-el.mode.textContent=STATE.mode==='tiebreak'?'Tie-break':'Normal';
+scoreRed.textContent=STATE.mode==='tiebreak'?STATE.points.r:LABELS[STATE.points.r];
+scoreBlue.textContent=STATE.mode==='tiebreak'?STATE.points.b:LABELS[STATE.points.b];
+setsLine.textContent=STATE.sets.r+' - '+STATE.sets.b;
+gamesLine.textContent=STATE.games.r+' - '+STATE.games.b;
+serveRed.classList.toggle('on',STATE.serve==='r');
+serveBlue.classList.toggle('on',STATE.serve==='b');
+modeLine.textContent=STATE.mode==='tiebreak'?'Tie-break':'Normal';
 }
 
 tapRed.onclick=()=>addPoint('r');
@@ -233,5 +343,6 @@ last=t;
 
 render();
 </script>
+
 </body>
 </html>
