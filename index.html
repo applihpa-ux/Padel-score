@@ -256,7 +256,13 @@ serve:STATE.serve
 
 function undo(){
 if(!STATE.history.length)return;
-Object.assign(STATE,STATE.history.pop());
+const prev=STATE.history.pop();
+STATE.mode=prev.mode;
+STATE.sets=prev.sets;
+STATE.games=prev.games;
+STATE.points=prev.points;
+STATE.adv=prev.adv;
+STATE.serve=prev.serve;
 render();
 }
 
@@ -276,7 +282,7 @@ render();
 function pickService(t){
 STATE.serve=t??(Math.random()<0.5?'r':'b');
 overlay.style.display='none';
-speak('Service '+(STATE.serve==='r'?'rouge':'bleu'),100);
+speak('Service '+(STATE.serve==='r'?'rouge':'bleu'));
 render();
 }
 
@@ -302,7 +308,7 @@ const o=s==='r'?'b':'r';
 
 speak(
 spokenScore()+
-' pour l équipe '+(s==='r'?'rouge':'bleu')+
+' pour équipe '+(s==='r'?'rouge':'bleu')+
 ', '+STATE.games[s]+' jeux à '+STATE.games[o]+
 ', '+STATE.sets[s]+' sets à '+STATE.sets[o]
 );
@@ -325,9 +331,25 @@ return;
 const o=team==='r'?'b':'r';
 
 if(STATE.points.r===3&&STATE.points.b===3){
-if(!STATE.adv){STATE.adv=team;render();speak(spokenScore());return;}
-if(STATE.adv===team){winGame(team);return;}
-if(STATE.adv===o){STATE.adv=null;render();speak(spokenScore());return;}
+
+if(!STATE.adv){
+STATE.adv=team;
+render();
+speak(spokenScore());
+return;
+}
+
+if(STATE.adv===team){
+winGame(team);
+return;
+}
+
+if(STATE.adv===o){
+STATE.adv=null;
+render();
+speak(spokenScore());
+return;
+}
 }
 
 if(STATE.points[team]<3){
@@ -352,7 +374,7 @@ const total=STATE.games.r+STATE.games.b;
 
 STATE.serve=STATE.serve==='r'?'b':'r';
 
-const serviceTeam = STATE.serve==='r'?'rouge':'bleu';
+const serviceTeam=STATE.serve==='r'?'rouge':'bleu';
 
 speak(
 STATE.games.r+' jeu'+(STATE.games.r>1?'x':'')+
@@ -380,7 +402,8 @@ render();
 }
 
 function checkTB(){
-const r=STATE.points.r,b=STATE.points.b;
+const r=STATE.points.r;
+const b=STATE.points.b;
 
 if((r>=7||b>=7)&&Math.abs(r-b)>=2){
 STATE.sets[r>b?'r':'b']++;
@@ -393,16 +416,12 @@ render();
 }
 
 function render(){
-
 scoreRed.textContent=STATE.mode==='tiebreak'?STATE.points.r:LABELS[STATE.points.r];
 scoreBlue.textContent=STATE.mode==='tiebreak'?STATE.points.b:LABELS[STATE.points.b];
-
 setsLine.textContent=STATE.sets.r+' - '+STATE.sets.b;
 gamesLine.textContent=STATE.games.r+' - '+STATE.games.b;
-
 serveRed.classList.toggle('on',STATE.serve==='r');
 serveBlue.classList.toggle('on',STATE.serve==='b');
-
 modeLine.textContent=STATE.mode==='tiebreak'?'Tie-break':'Normal';
 }
 
@@ -410,6 +429,7 @@ tapRed.onclick=()=>addPoint('r');
 tapBlue.onclick=()=>addPoint('b');
 
 let last=0;
+
 centerTap.onclick=()=>{
 const t=Date.now();
 if(t-last<350)announceFull();
@@ -419,9 +439,8 @@ last=t;
 document.addEventListener("keydown",function(e){
 
 if(e.key==="r"||e.key==="R") addPoint('r');
-
 if(e.key==="b"||e.key==="B") addPoint('b');
-
+if(e.key==="u"||e.key==="U") undo();
 if(e.key==="s"||e.key==="S") announceFull();
 
 });
