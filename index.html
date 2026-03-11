@@ -1,3 +1,4 @@
+```html
 <!doctype html>
 <html lang="fr">
 <head>
@@ -218,6 +219,7 @@ margin:8px;
 </div>
 
 <script>
+
 const LABELS=['0','15','30','40'];
 
 const STATE={
@@ -290,20 +292,26 @@ if(STATE.adv===s)return 'Avantage '+(s==='r'?'rouge':'bleu');
 if(STATE.adv===o)return 'Avantage '+(o==='r'?'rouge':'bleu');
 return 'Égalité';
 }
+
 return LABELS[STATE.points[s]]+' '+LABELS[STATE.points[o]];
 }
 
 function announceFull(){
 const s=STATE.serve;
 const o=s==='r'?'b':'r';
-speak(spokenScore()+
+
+speak(
+spokenScore()+
 ' pour l équipe '+(s==='r'?'rouge':'bleu')+
 ', '+STATE.games[s]+' jeux à '+STATE.games[o]+
-', '+STATE.sets[s]+' sets à '+STATE.sets[o],100);
+', '+STATE.sets[s]+' sets à '+STATE.sets[o]
+);
 }
 
 function addPoint(team){
+
 if(!STATE.serve)return;
+
 snapshot();
 
 if(STATE.mode==='tiebreak'){
@@ -322,21 +330,37 @@ if(STATE.adv===team){winGame(team);return;}
 if(STATE.adv===o){STATE.adv=null;render();speak(spokenScore());return;}
 }
 
-if(STATE.points[team]<3){STATE.points[team]++;render();speak(spokenScore());return;}
-if(STATE.points[team]===3&&STATE.points[o]<3){winGame(team);}
+if(STATE.points[team]<3){
+STATE.points[team]++;
+render();
+speak(spokenScore());
+return;
+}
+
+if(STATE.points[team]===3&&STATE.points[o]<3){
+winGame(team);
+}
 }
 
 function winGame(team){
+
 STATE.games[team]++;
 STATE.points={r:0,b:0};
 STATE.adv=null;
 
-speak('Jeu '+(team==='r'?'rouge':'bleu'));
-
 const total=STATE.games.r+STATE.games.b;
-if(total%2===1)speak('Changement de côté',900);
 
 STATE.serve=STATE.serve==='r'?'b':'r';
+
+const serviceTeam = STATE.serve==='r'?'rouge':'bleu';
+
+speak(
+STATE.games.r+' jeu'+(STATE.games.r>1?'x':'')+
+' à '+STATE.games.b+
+', service équipe '+serviceTeam
+);
+
+if(total%2===1)speak('Changement de côté',900);
 
 if(STATE.games.r===6&&STATE.games.b===6){
 STATE.mode='tiebreak';
@@ -357,6 +381,7 @@ render();
 
 function checkTB(){
 const r=STATE.points.r,b=STATE.points.b;
+
 if((r>=7||b>=7)&&Math.abs(r-b)>=2){
 STATE.sets[r>b?'r':'b']++;
 STATE.games={r:0,b:0};
@@ -368,12 +393,16 @@ render();
 }
 
 function render(){
+
 scoreRed.textContent=STATE.mode==='tiebreak'?STATE.points.r:LABELS[STATE.points.r];
 scoreBlue.textContent=STATE.mode==='tiebreak'?STATE.points.b:LABELS[STATE.points.b];
+
 setsLine.textContent=STATE.sets.r+' - '+STATE.sets.b;
 gamesLine.textContent=STATE.games.r+' - '+STATE.games.b;
+
 serveRed.classList.toggle('on',STATE.serve==='r');
 serveBlue.classList.toggle('on',STATE.serve==='b');
+
 modeLine.textContent=STATE.mode==='tiebreak'?'Tie-break':'Normal';
 }
 
@@ -388,14 +417,21 @@ last=t;
 };
 
 document.addEventListener("keydown",function(e){
-if(e.key==="r"||e.key==="R")addPoint('r');
-if(e.key==="b"||e.key==="B")addPoint('b');
+
+if(e.key==="r"||e.key==="R") addPoint('r');
+
+if(e.key==="b"||e.key==="B") addPoint('b');
+
+if(e.key==="s"||e.key==="S") announceFull();
+
 });
 
 document.body.focus();
 
 render();
+
 </script>
 
 </body>
 </html>
+```
