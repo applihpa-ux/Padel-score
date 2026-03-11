@@ -171,7 +171,7 @@ margin:8px;
 </style>
 </head>
 
-<body>
+<body tabindex="0">
 
 <div class="wrap">
 <div class="main">
@@ -386,6 +386,13 @@ const t=Date.now();
 if(t-last<350)announceFull();
 last=t;
 };
+
+document.addEventListener("keydown",function(e){
+if(e.key==="r"||e.key==="R")addPoint('r');
+if(e.key==="b"||e.key==="B")addPoint('b');
+});
+
+document.body.focus();
 
 render();
 </script>
